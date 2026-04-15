@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { FastifyRequest } from 'fastify';
-import { AuditService } from '../core/audit.js';
+import { AuditService, sanitizeAuditPayload } from '../core/audit.js';
 import { textToolResult } from '../core/toolHelpers.js';
 import type {
   ClarityModule,
@@ -183,15 +183,18 @@ export function buildStreamableMcpServer({
         annotations: buildAnnotations(tool.access),
       },
       async (args) => {
+        const input = normalizeArgs(args);
         try {
-          const result = await tool.execute({ request, auth, db: services.db }, normalizeArgs(args));
+          const result = await tool.execute({ request, auth, db: services.db }, input);
           await auditService.record(services.db, auth, tool.name, 'ok', {
             source_id: auth.currentSource.sourceId,
+            args: sanitizeAuditPayload(input),
           });
           return result as any;
         } catch (error) {
           await auditService.record(services.db, auth, tool.name, 'error', {
             message: error instanceof Error ? error.message : 'Unknown error',
+            args: sanitizeAuditPayload(input),
           });
           return textToolResult(
             { error: error instanceof Error ? error.message : 'Unknown error' },

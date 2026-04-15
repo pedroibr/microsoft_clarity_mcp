@@ -1,5 +1,5 @@
 import { SessionStateService } from '../core/sessionState.js';
-import { AuditService } from '../core/audit.js';
+import { AuditService, sanitizeAuditPayload } from '../core/audit.js';
 import { textToolResult } from '../core/toolHelpers.js';
 import type {
   ClarityModule,
@@ -127,11 +127,13 @@ async function handleToolCall(
     const result = await tool.execute({ request: {} as any, auth, db: services.db }, args);
     await auditService.record(services.db, auth, toolName, 'ok', {
       source_id: auth.currentSource.sourceId,
+      args: sanitizeAuditPayload(args),
     });
     return jsonRpcResult(id, result);
   } catch (error) {
     await auditService.record(services.db, auth, toolName, 'error', {
       message: error instanceof Error ? error.message : 'Unknown error',
+      args: sanitizeAuditPayload(args),
     });
     return jsonRpcError(id, -32000, error instanceof Error ? error.message : 'Unknown error');
   }

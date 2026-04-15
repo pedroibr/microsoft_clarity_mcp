@@ -9,6 +9,36 @@ const REMOTE_TOOL_NAMES = [
   'validate_source',
 ] as const;
 
+const SENSITIVE_KEYS = new Set([
+  'api_token',
+  'apiToken',
+  'token',
+  'authorization',
+  'bearerToken',
+  'publicToken',
+  'password',
+  'secret',
+]);
+
+function sanitizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeValue(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const output: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    output[key] = SENSITIVE_KEYS.has(key) ? '[redacted]' : sanitizeValue(entry);
+  }
+  return output;
+}
+
+export function sanitizeAuditPayload(payload: Record<string, unknown>) {
+  return sanitizeValue(payload) as Record<string, unknown>;
+}
+
 export class AuditService {
   async record(
     db: any,
@@ -23,7 +53,7 @@ export class AuditService {
       authMode: context.authMode,
       toolName,
       status,
-      payloadJson: payload,
+      payloadJson: sanitizeAuditPayload(payload),
     });
   }
 
@@ -44,7 +74,7 @@ export class AuditService {
       authMode: params.authMode ?? null,
       toolName: params.toolName,
       status: params.status,
-      payloadJson: params.payload,
+      payloadJson: sanitizeAuditPayload(params.payload),
     });
   }
 
