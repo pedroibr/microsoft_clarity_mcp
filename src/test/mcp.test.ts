@@ -279,7 +279,7 @@ describe('MCP routes', () => {
 
   it('exposes admin API flows for client, source, link, default source, and token issuance', async () => {
     const upstream = await createMockClarityServer({
-      'POST /mcp/dashboard/query': () => ({
+      'POST /mcp/recordings/sample': () => ({
         body: { success: true },
       }),
     });

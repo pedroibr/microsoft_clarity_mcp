@@ -62,9 +62,21 @@ export class ClarityApiClient {
 
   async validateSource(db: any, source: DecryptedClaritySourceAccess) {
     await this.assertWithinQuota(db, source.sourceId);
-    await this.post(source, '/dashboard/query', {
-      query: 'Traffic last day',
-      timezone: 'UTC',
+    const end = new Date();
+    const start = new Date(end);
+    start.setUTCDate(start.getUTCDate() - 3);
+
+    await this.post(source, '/recordings/sample', {
+      sortBy: 'SessionStart_DESC',
+      start: start.toISOString(),
+      end: end.toISOString(),
+      filters: {
+        date: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
+      },
+      count: 1,
     });
   }
 
